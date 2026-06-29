@@ -4,6 +4,8 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-${PROJECT_DIR}/security-stack.env}"
 
+trap 'echo "ERROR: instalacion interrumpida en ${BASH_SOURCE[0]}:${LINENO}. Revisa la salida anterior." >&2' ERR
+
 if [ "$EUID" -ne 0 ]; then
   echo "Ejecuta como root: sudo $0"
   exit 1
@@ -128,6 +130,11 @@ validate_stack() {
   systemctl reload nginx
   systemctl enable nginx fail2ban >/dev/null 2>&1 || true
   systemctl restart fail2ban || true
+
+  if ! command -v security-report >/dev/null 2>&1; then
+    echo "ERROR: security-report no quedo instalado. La instalacion no esta completa."
+    exit 1
+  fi
 
   echo
   echo "Puertos escuchando:"

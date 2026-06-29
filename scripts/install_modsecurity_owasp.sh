@@ -21,6 +21,8 @@ NGINX_CONF="/etc/nginx/nginx.conf"
 MODULE_LINE="load_module /usr/lib/nginx/modules/ngx_http_modsecurity_module.so;"
 MODULE_PATH="/usr/lib/nginx/modules/ngx_http_modsecurity_module.so"
 
+trap 'echo "ERROR: instalacion ModSecurity interrumpida en ${BASH_SOURCE[0]}:${LINENO}. Revisa la salida anterior." >&2' ERR
+
 if [ "$EUID" -ne 0 ]; then
   echo "Ejecuta como root: sudo $0"
   exit 1
@@ -284,6 +286,17 @@ EOF
   chmod 0640 /var/log/modsec_audit.log || true
 }
 
+verify_modsecurity_rules() {
+  local count
+  count="$(nginx -T 2>/dev/null | grep -c '^[[:space:]]*SecRule' || true)"
+  if [ "$count" -lt 10 ]; then
+    echo "ERROR: ModSecurity esta cargado, pero Nginx reporta solo ${count} reglas SecRule."
+    echo "Esto normalmente significa que modsecurity_rules_file no apunta a ${MODSEC_DIR}/main.conf o que OWASP CRS no cargo."
+    exit 1
+  fi
+  echo "ModSecurity reglas cargadas: ${count}"
+}
+
 ensure_crs
 ensure_modsecurity_module
 install_modsecurity_files
@@ -291,5 +304,6 @@ configure_nginx_module
 
 nginx -t
 systemctl reload nginx
+verify_modsecurity_rules
 
 echo "ModSecurity + OWASP CRS listo."

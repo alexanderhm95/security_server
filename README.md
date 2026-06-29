@@ -32,8 +32,8 @@ cp security-stack.sp1.env.example security-stack.env
 - `IGNORE_IPS`: redes que nunca deben ser bloqueadas por Fail2Ban. Por defecto incluye `190.96.96.0/21`.
 - `PUBLIC_IGNORE_IPS`: redes permitidas para jails web. Por defecto incluye `190.96.96.0/21`.
 - `SSH_ALLOW_CIDR`: red/IP autorizada para SSH. Si queda vacia, el instalador no cambia SSH.
-- `HTTP_ALLOW_CIDR` / `HTTPS_ALLOW_CIDR`: usa `any` o un CIDR especifico, por ejemplo `190.96.96.0/21`.
-- `WIREGUARD_ALLOW_CIDR`: usa `any` o un CIDR especifico.
+- `HTTP_ALLOW_CIDR` / `HTTPS_ALLOW_CIDR`: usa `any` o un CIDR especifico. Por defecto `80` queda limitado a `190.96.96.0/21` y `443` queda publico.
+- `WIREGUARD_ALLOW_CIDR`: usa `any` o un CIDR especifico. Por defecto queda limitado a `190.96.96.0/21`.
 - `DISCORD_WEBHOOK_URL`: opcional. No se guarda ningun webhook por defecto.
 - `MODSEC_RULE_ENGINE`: `On` para bloquear, `DetectionOnly` para solo observar.
 - `BUILD_MODSECURITY_FROM_SOURCE`: `auto` intenta paquete y compila si hace falta; `yes` fuerza compilacion; `no` exige paquete/modulo ya disponible.
