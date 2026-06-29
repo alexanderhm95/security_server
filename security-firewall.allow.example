@@ -1,0 +1,7 @@
+# Reglas UFW permitidas. Una regla por linea, sin escribir "ufw".
+# Ajusta estas redes para cada servidor antes de aplicar.
+
+allow 443/tcp comment HTTPS publico
+allow from 10.0.0.0/8 to any port 22 proto tcp comment SSH red privada
+allow from 10.0.0.0/8 to any port 9090 proto tcp comment Prometheus red privada
+allow from 10.0.0.0/8 to any port 3100 proto tcp comment Loki red privada

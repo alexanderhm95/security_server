@@ -1,0 +1,8 @@
+allow 443/tcp comment HTTPS publico
+allow from 10.10.0.0/28 to any port 3100 proto tcp comment Loki solo red monitoreo
+allow from 10.10.0.6 to any port 9090 proto tcp comment Panel de prometheus
+allow from 10.88.0.0/24 to any port 22 proto tcp comment SSH solo VPN
+allow from 10.88.0.0/24 to any port 9099 proto tcp comment Admin web solo VPN
+allow from 10.88.0.0/24 to any port 9090 proto tcp comment Prometheus solo VPN
+allow from 190.96.96.0/21 to any port 80 proto tcp comment HTTP solo red autorizada
+allow from 190.96.96.0/21 to any port 51820 proto udp comment WireGuard solo red autorizada

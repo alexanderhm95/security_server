@@ -13,6 +13,7 @@ Incluye:
 - Herramientas `security-monitor` y `security-report`.
 - Analizador profesional `attack-detect` para revisar `access.log`, bots, rutas sensibles, puertos, hosts, UFW y acciones sugeridas.
 - Threat intelligence con `ipset` para bloquear rangos/IPs conocidos.
+- Endurecimiento generico para servidores: cierre de puertos UFW, reglas permitidas por archivo, bloqueo temprano con nftables y auto-ban de IPs repetidas en `/var/log/ufw.log`.
 
 ## Uso Rapido
 
@@ -59,6 +60,64 @@ curl -k "https://localhost/?q=<script>alert(1)</script>" -s -o /dev/null -w "HTT
 ```
 
 Los ataques de prueba deberian devolver `403` cuando `MODSEC_RULE_ENGINE="On"`.
+
+## Endurecimiento Firewall Generico
+
+Estos scripts ayudan a cerrar puertos sensibles, aplicar reglas permitidas por servidor y reducir ruido de scanners contra la IP publica. No tienen redes obligatorias quemadas: cada servidor debe usar su propio archivo `.env` y listas de reglas.
+
+Flujo recomendado para cualquier servidor:
+
+```bash
+# 1. Copia y ajusta configuracion.
+cp security-firewall.env.example security-firewall.env
+cp security-firewall.allow.example security-firewall.allow
+cp security-firewall.delete.example security-firewall.delete
+cp security-nft-blocks.example.txt security-nft-blocks.txt
+nano security-firewall.env
+nano security-firewall.allow
+nano security-nft-blocks.txt
+
+# 2. Simula sin aplicar.
+ENV_FILE=./security-firewall.env ./scripts/hardening_firewall.sh
+ENV_FILE=./security-firewall.env ./scripts/drop_hot_attackers_nft.sh
+
+# 3. Aplica UFW.
+sudo ENV_FILE=./security-firewall.env ./scripts/hardening_firewall.sh --apply
+
+# 4. Aplica bloqueo nftables runtime.
+sudo ENV_FILE=./security-firewall.env ./scripts/drop_hot_attackers_nft.sh --apply
+
+# Hace persistente el bloqueo nftables despues de reinicio.
+sudo ENV_FILE=./security-firewall.env ./scripts/install_early_drop_persistent.sh
+
+# Banea IPs individuales repetidas vistas en /var/log/ufw.log.
+sudo env ENV_FILE=./security-firewall.env THRESHOLD=20 ./scripts/ban_repeat_ufw_sources.sh --apply
+```
+
+Verificacion recomendada:
+
+```bash
+sudo ufw status verbose
+sudo nft list table inet early_drop_attackers
+systemctl status nftables --no-pager
+ss -ltnup | grep -E ':(3000|3100|9090|9096|9099|9100|9115)\s'
+```
+
+Ejemplo para SP2:
+
+```bash
+ENV_FILE=./examples/sp2-security-firewall.env ./scripts/hardening_firewall.sh
+sudo ENV_FILE=./examples/sp2-security-firewall.env ./scripts/hardening_firewall.sh --apply
+sudo ENV_FILE=./examples/sp2-security-firewall.env ./scripts/drop_hot_attackers_nft.sh --apply
+sudo ENV_FILE=./examples/sp2-security-firewall.env ./scripts/install_early_drop_persistent.sh
+sudo env ENV_FILE=./examples/sp2-security-firewall.env THRESHOLD=20 ./scripts/ban_repeat_ufw_sources.sh --apply
+```
+
+Notas:
+
+- Los paquetes de scanners pueden seguir llegando a la IP publica; el objetivo es que se descarten antes de llegar a servicios.
+- El trafico IPv6 `fe80::` hacia `ff02::1` es link-local/multicast, no ataque de Internet.
+- `ban_repeat_ufw_sources.sh` guarda estado en `/var/lib/security-server/ufw-auto-banned-ips.txt` para no duplicar bloqueos.
 
 ## Monitor Y Reportes
 

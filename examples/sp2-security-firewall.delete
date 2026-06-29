@@ -1,0 +1,2 @@
+delete allow from 190.96.102.22 to any port 9090 proto tcp
+delete allow from 190.96.102.54 to any port 9090 proto tcp

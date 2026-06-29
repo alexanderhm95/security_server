@@ -1,0 +1,5 @@
+# Reglas UFW antiguas a eliminar antes de aplicar nuevas reglas.
+# Una regla por linea, sin escribir "ufw".
+#
+# Ejemplo:
+# delete allow from 203.0.113.10 to any port 9090 proto tcp
