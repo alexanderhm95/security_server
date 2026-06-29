@@ -104,7 +104,7 @@ Verificacion recomendada:
 ```bash
 sudo ufw status verbose
 sudo nft list table inet early_drop_attackers
-systemctl status nftables --no-pager
+systemctl status security-early-drop-nft --no-pager
 ss -ltnup | grep -E ':(3000|3100|9090|9096|9099|9100|9115)\s'
 ```
 
@@ -123,7 +123,8 @@ Notas:
 - Los paquetes de scanners pueden seguir llegando a la IP publica; el objetivo es que se descarten antes de llegar a servicios.
 - El trafico IPv6 `fe80::` hacia `ff02::1` es link-local/multicast, no ataque de Internet.
 - `ban_repeat_ufw_sources.sh` guarda estado en `/var/lib/security-server/ufw-auto-banned-ips.txt` para no duplicar bloqueos.
-- El instalador principal (`install_security_stack.sh`) tambien ejecuta `install_early_drop_persistent.sh` cuando `ENABLE_EARLY_DROP_NFT` esta en `yes` o cuando esta en `auto` y existe una lista con redes. Si `nftables.service` queda `inactive`, normalmente significa que no habia redes configuradas para cargar.
+- `install_early_drop_persistent.sh` usa un servicio dedicado llamado `security-early-drop-nft.service`; no modifica `/etc/nftables.conf` ni reinicia `nftables.service`, para no borrar reglas de UFW/iptables.
+- El instalador principal (`install_security_stack.sh`) tambien ejecuta `install_early_drop_persistent.sh` cuando `ENABLE_EARLY_DROP_NFT` esta en `yes` o cuando esta en `auto` y existe una lista con redes. Si `security-early-drop-nft.service` no existe, normalmente significa que no habia redes configuradas para cargar.
 
 ## Monitor Y Reportes
 

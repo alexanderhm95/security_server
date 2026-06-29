@@ -80,8 +80,12 @@ echo
 echo "NFTABLES EARLY DROP"
 if command -v nft >/dev/null 2>&1 && nft list table inet early_drop_attackers >/dev/null 2>&1; then
   echo "  Tabla early_drop_attackers: instalada"
-  systemctl is-enabled nftables 2>/dev/null | sed 's/^/  Servicio enabled: /' || true
-  systemctl is-active nftables 2>/dev/null | sed 's/^/  Servicio active: /' || true
+  if systemctl list-unit-files security-early-drop-nft.service 2>/dev/null | grep -q '^security-early-drop-nft\.service'; then
+    systemctl is-enabled security-early-drop-nft.service 2>/dev/null | sed 's/^/  Servicio dedicated enabled: /' || true
+    systemctl is-active security-early-drop-nft.service 2>/dev/null | sed 's/^/  Servicio dedicated active: /' || true
+  fi
+  systemctl is-enabled nftables 2>/dev/null | sed 's/^/  nftables.service enabled: /' || true
+  systemctl is-active nftables 2>/dev/null | sed 's/^/  nftables.service active: /' || true
   nft list table inet early_drop_attackers 2>/dev/null | awk '/elements =/ {capture=1} capture {print}' | head -20 | sed 's/^/  /'
 else
   echo "  No instalado o sin tabla early_drop_attackers"
