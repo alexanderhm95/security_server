@@ -398,14 +398,30 @@ calcular_riesgo_ips() {
     mostrar_seccion "RANKING DE RIESGO POR IP"
 
     awk -F'"' '
+    function permitida(ip, o) {
+        split(ip, o, ".")
+        if (o[1] == 10) return 1
+        if (o[1] == 127) return 1
+        if (o[1] == 172 && o[2] >= 16 && o[2] <= 31) return 1
+        if (o[1] == 192 && o[2] == 168) return 1
+        if (o[1] == 169 && o[2] == 254) return 1
+        if (o[1] == 100 && o[2] >= 64 && o[2] <= 127) return 1
+        if (o[1] == 190 && o[2] == 96 && o[3] >= 96 && o[3] <= 103) return 1
+        return 0
+    }
     {
         split($1,ipdata," ");
         ip=ipdata[1];
 
+        if (permitida(ip)) {
+            allowed[ip]++;
+            next
+        }
+
         request=$2;
         split($3,statusdata," ");
         status=statusdata[1];
-        ua=$6;
+        ua=tolower($6);
 
         total[ip]++;
 
@@ -422,7 +438,7 @@ calcular_riesgo_ips() {
 
         if (request ~ /union|select.*from|drop.*table|cmd=|exec=|system=|eval=|onerror=|onload=|\.\.\//) exploit[ip]++;
 
-        if (ua ~ /masscan|nmap|sqlmap|nikto|curl|wget|python|go-http|shodan|censys|ivre|zgrab/i) botua[ip]++;
+        if (ua ~ /masscan|nmap|sqlmap|nikto|curl|wget|python|go-http|shodan|censys|ivre|zgrab/) botua[ip]++;
     }
     END {
         for (ip in total) {
@@ -441,7 +457,17 @@ calcular_riesgo_ips() {
                 printf "%s %s %s %s %s %s %s %s\n", score, total[ip], s, a, e, m, b, ip;
             }
         }
+        allowed_total = 0;
+        for (ip in allowed) allowed_total += allowed[ip];
+        if (allowed_total > 0) {
+            printf "__ALLOWED__ %s\n", allowed_total;
+        }
     }' "$LOG_FILE" | sort -rn | head -20 | while read score total sensitive authfail exploit malformed botua ip; do
+        if [ "$score" = "__ALLOWED__" ]; then
+            printf "${GRAY}[INFO]${NC} omitidas %s entradas de redes permitidas/locales en el ranking.\n" "$total"
+            continue
+        fi
+
         if [ "$score" -ge 80 ]; then
             riesgo="ALTO"
             color=$RED
@@ -589,7 +615,7 @@ comandos_bloqueo_sugeridos() {
         request=$2;
         split($3,statusdata," ");
         status=statusdata[1];
-        ua=$6;
+        ua=tolower($6);
 
         total[ip]++;
 
@@ -598,7 +624,7 @@ comandos_bloqueo_sugeridos() {
         if (request ~ /union|select.*from|drop.*table|cmd=|exec=|system=|eval=|onerror=|onload=|\.\.\//) exploit[ip]++;
         if (request ~ /^POST \/login/ && status ~ /^(401|403)$/) authfail[ip]++;
         if (request == "-") malformed[ip]++;
-        if (ua ~ /masscan|nmap|sqlmap|nikto|curl|wget|python|go-http|shodan|censys|ivre|zgrab/i) botua[ip]++;
+        if (ua ~ /masscan|nmap|sqlmap|nikto|curl|wget|python|go-http|shodan|censys|ivre|zgrab/) botua[ip]++;
 
         score = 0;
     }
