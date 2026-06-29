@@ -191,7 +191,7 @@ configure_nginx_module() {
   if grep -Rqs 'ngx_http_modsecurity_module\.so' /etc/nginx/modules-enabled 2>/dev/null; then
     if grep -qsF "$MODULE_LINE" "$NGINX_CONF"; then
       backup_file "$NGINX_CONF"
-      sed -i "\#^${MODULE_LINE}$#d" "$NGINX_CONF"
+      sed -i '\|^load_module /usr/lib/nginx/modules/ngx_http_modsecurity_module\.so;$|d' "$NGINX_CONF"
       echo "Eliminado load_module duplicado de $NGINX_CONF; el modulo ya se carga desde modules-enabled."
     fi
   elif [ -f "$MODULE_PATH" ]; then
