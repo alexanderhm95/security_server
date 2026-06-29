@@ -28,8 +28,8 @@ cp security-stack.sp1.env.example security-stack.env
 
 ## Variables Importantes
 
-- `IGNORE_IPS`: redes que nunca deben ser bloqueadas por Fail2Ban.
-- `PUBLIC_IGNORE_IPS`: redes permitidas para jails web.
+- `IGNORE_IPS`: redes que nunca deben ser bloqueadas por Fail2Ban. Por defecto incluye `190.96.96.0/21`.
+- `PUBLIC_IGNORE_IPS`: redes permitidas para jails web. Por defecto incluye `190.96.96.0/21`.
 - `SSH_ALLOW_CIDR`: red/IP autorizada para SSH. Si queda vacia, el instalador no cambia SSH.
 - `HTTP_ALLOW_CIDR` / `HTTPS_ALLOW_CIDR`: usa `any` o un CIDR especifico, por ejemplo `190.96.96.0/21`.
 - `WIREGUARD_ALLOW_CIDR`: usa `any` o un CIDR especifico.

@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-IGNORE_IPS="127.0.0.1/8 ::1 10.10.0.0/24"
-PUBLIC_IGNORE_IPS="127.0.0.1/8 ::1 10.10.0.0/24"
+IGNORE_IPS="127.0.0.1/8 ::1 10.10.0.0/24 190.96.96.0/21"
+PUBLIC_IGNORE_IPS="127.0.0.1/8 ::1 10.10.0.0/24 190.96.96.0/21"
 NGINX_ACCESS_LOG="/var/log/nginx/access.log"
 NGINX_ERROR_LOG="/var/log/nginx/error.log"
 BANACTION="iptables-multiport"
@@ -19,8 +19,8 @@ Uso:
   sudo ./install_fail2ban_sp1.sh [opciones]
 
 Opciones:
-  --ignore-ips "IP1 IP2 CIDR"      IPs globales permitidas. Default: 127.0.0.1/8 ::1 10.10.0.0/24
-  --public-ignore-ips "IP1 CIDR"   IPs/redes permitidas para jails Nginx. Default: 127.0.0.1/8 ::1 10.10.0.0/24
+  --ignore-ips "IP1 IP2 CIDR"      IPs globales permitidas. Default: 127.0.0.1/8 ::1 10.10.0.0/24 190.96.96.0/21
+  --public-ignore-ips "IP1 CIDR"   IPs/redes permitidas para jails Nginx. Default: 127.0.0.1/8 ::1 10.10.0.0/24 190.96.96.0/21
   --nginx-access-log RUTA          Log access Nginx. Default: /var/log/nginx/access.log
   --nginx-error-log RUTA           Log error Nginx. Default: /var/log/nginx/error.log
   --banaction ACCION               Accion Fail2Ban. Default: iptables-multiport
@@ -30,7 +30,7 @@ Opciones:
   -h, --help                       Muestra esta ayuda.
 
 Ejemplo:
-  sudo ./install_fail2ban_sp1.sh --public-ignore-ips "127.0.0.1/8 ::1 10.10.0.0/24"
+  sudo ./install_fail2ban_sp1.sh --public-ignore-ips "127.0.0.1/8 ::1 10.10.0.0/24 190.96.96.0/21"
   sudo DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..." ./install_fail2ban_sp1.sh
 EOF
 }
