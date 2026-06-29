@@ -10,6 +10,7 @@ Incluye:
 - OWASP Core Rule Set.
 - Reglas locales contra scanners, user-agent vacio y rutas sensibles.
 - Herramientas `security-monitor` y `security-report`.
+- Analizador profesional `attack-detect` para revisar `access.log`, bots, rutas sensibles, puertos, hosts, UFW y acciones sugeridas.
 - Threat intelligence con `ipset` para bloquear rangos/IPs conocidos.
 
 ## Uso Rapido
@@ -51,11 +52,55 @@ cp security-stack.sp1.env.example security-stack.env
 ```bash
 sudo nginx -t
 security-report
+sudo attack-detect /var/log/nginx/access.log
 curl -k -A "masscan" https://localhost/ -s -o /dev/null -w "HTTP: %{http_code}\n"
 curl -k "https://localhost/?q=<script>alert(1)</script>" -s -o /dev/null -w "HTTP: %{http_code}\n"
 ```
 
 Los ataques de prueba deberian devolver `403` cuando `MODSEC_RULE_ENGINE="On"`.
+
+## Monitor Y Reportes
+
+El instalador deja tres comandos operativos:
+
+- `security-report`: resumen del estado de Nginx, ModSecurity, Fail2Ban, UFW, threat intel, puertos y bloqueos recientes.
+- `security-monitor`: vista rapida en consola para eventos recientes de Fail2Ban, ModSecurity, UFW y Nginx.
+- `attack-detect`: analizador profundo de `/var/log/nginx/access.log`.
+
+Uso recomendado:
+
+```bash
+security-report
+security-monitor
+sudo attack-detect /var/log/nginx/access.log
+```
+
+`attack-detect` revisa codigos HTTP, trafico por hora, metodos usados, ataques por puerto, hosts solicitados, top IPs con pais/ISP/ASN, rutas sensibles, scanners conocidos, user-agents sospechosos, ranking de riesgo por IP, bloqueos UFW y acciones manuales sugeridas.
+
+El analizador no bloquea automaticamente. Sirve para monitoreo y decision operativa; los bloqueos automaticos quedan en Fail2Ban, ModSecurity, UFW y threat intel.
+
+### Log Nginx Recomendado Para Attack Detect
+
+Para que `attack-detect` pueda mostrar puerto y host, Nginx debe registrar `host` y `port`. Dentro de `http { ... }`:
+
+```nginx
+log_format attacklog '$remote_addr - $remote_user [$time_local] '
+                     '"$request" $status $body_bytes_sent '
+                     '"$http_referer" "$http_user_agent" '
+                     'host="$host" port="$server_port"';
+```
+
+En cada `server { ... }` que quieras monitorear:
+
+```nginx
+access_log /var/log/nginx/access.log attacklog;
+```
+
+Aplica cambios:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
 
 ## Threat Intel
 

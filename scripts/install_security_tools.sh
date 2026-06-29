@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ATTACK_DETECT_SRC="${SCRIPT_DIR}/attack_detect.sh"
+
 if [ "$EUID" -ne 0 ]; then
   echo "Ejecuta como root: sudo $0"
   exit 1
@@ -79,7 +82,22 @@ ss -tulpen 2>/dev/null | sed -n '1,40p'
 echo
 echo "ULTIMOS BLOQUEOS UFW"
 tail -20 /var/log/ufw.log 2>/dev/null | grep "BLOCK" | tail -5 | sed 's/^/  /' || true
+echo
+echo "ATTACK DETECT"
+if command -v attack-detect >/dev/null 2>&1; then
+  echo "  Instalado: attack-detect"
+  echo "  Uso: sudo attack-detect /var/log/nginx/access.log"
+else
+  echo "  No instalado"
+fi
 EOF
 
+if [ -f "$ATTACK_DETECT_SRC" ]; then
+  install -m 0755 "$ATTACK_DETECT_SRC" /usr/local/bin/attack-detect
+  ln -sf /usr/local/bin/attack-detect /usr/local/bin/attack_detect
+else
+  echo "AVISO: no encontre $ATTACK_DETECT_SRC; no instalo attack-detect."
+fi
+
 chmod 0755 /usr/local/bin/security-monitor /usr/local/bin/security-report
-echo "Instalados: security-monitor, security-report"
+echo "Instalados: security-monitor, security-report, attack-detect"

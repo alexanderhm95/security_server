@@ -156,6 +156,7 @@ Instalacion completada para: ${SERVER_NAME}
 Comandos utiles:
   security-report
   security-monitor
+  sudo attack-detect /var/log/nginx/access.log
   fail2ban-client status
   tail -f /var/log/modsec_audit.log /var/log/ufw.log /var/log/fail2ban.log
 EOF
