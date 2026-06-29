@@ -77,6 +77,16 @@ else
   echo "  No instalado"
 fi
 echo
+echo "NFTABLES EARLY DROP"
+if command -v nft >/dev/null 2>&1 && nft list table inet early_drop_attackers >/dev/null 2>&1; then
+  echo "  Tabla early_drop_attackers: instalada"
+  systemctl is-enabled nftables 2>/dev/null | sed 's/^/  Servicio enabled: /' || true
+  systemctl is-active nftables 2>/dev/null | sed 's/^/  Servicio active: /' || true
+  nft list table inet early_drop_attackers 2>/dev/null | awk '/elements =/ {capture=1} capture {print}' | head -20 | sed 's/^/  /'
+else
+  echo "  No instalado o sin tabla early_drop_attackers"
+fi
+echo
 echo "PUERTOS ESCUCHANDO"
 ss -tulpen 2>/dev/null | sed -n '1,40p'
 echo

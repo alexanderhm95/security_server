@@ -3,6 +3,7 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-${PROJECT_DIR}/security-stack.env}"
+ENV_DIR=""
 
 trap 'echo "ERROR: instalacion interrumpida en ${BASH_SOURCE[0]}:${LINENO}. Revisa la salida anterior." >&2' ERR
 
@@ -12,6 +13,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 if [ -f "$ENV_FILE" ]; then
+  ENV_DIR="$(cd "$(dirname "$ENV_FILE")" && pwd)"
   # shellcheck disable=SC1090
   . "$ENV_FILE"
 fi
@@ -32,6 +34,13 @@ ENABLE_MODSECURITY="${ENABLE_MODSECURITY:-yes}"
 ENABLE_FAIL2BAN="${ENABLE_FAIL2BAN:-yes}"
 ENABLE_MONITOR_TOOLS="${ENABLE_MONITOR_TOOLS:-yes}"
 ENABLE_THREAT_INTEL="${ENABLE_THREAT_INTEL:-yes}"
+ENABLE_EARLY_DROP_NFT="${ENABLE_EARLY_DROP_NFT:-auto}"
+BLOCK_NETWORKS_FILE="${BLOCK_NETWORKS_FILE:-${PROJECT_DIR}/security-nft-blocks.txt}"
+DEFAULT_BLOCK_NETWORKS="${DEFAULT_BLOCK_NETWORKS:-}"
+
+if [ -n "$BLOCK_NETWORKS_FILE" ] && [ "${BLOCK_NETWORKS_FILE#/}" = "$BLOCK_NETWORKS_FILE" ] && [ -n "$ENV_DIR" ]; then
+  BLOCK_NETWORKS_FILE="${ENV_DIR}/${BLOCK_NETWORKS_FILE}"
+fi
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -46,7 +55,7 @@ install_packages() {
 
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    nginx fail2ban curl git ca-certificates iptables ufw ipset
+    nginx fail2ban curl git ca-certificates iptables ufw ipset nftables python3
 }
 
 configure_ufw() {
@@ -124,6 +133,46 @@ run_threat_intel() {
   THREAT_INTEL_ENV="$ENV_FILE" "$PROJECT_DIR/scripts/install_threat_intel.sh"
 }
 
+has_nft_networks() {
+  if [ -n "$DEFAULT_BLOCK_NETWORKS" ]; then
+    return 0
+  fi
+
+  if [ -f "$BLOCK_NETWORKS_FILE" ] && sed 's/#.*$//' "$BLOCK_NETWORKS_FILE" | awk 'NF {found=1} END {exit !found}'; then
+    return 0
+  fi
+
+  return 1
+}
+
+run_early_drop_nft() {
+  case "$ENABLE_EARLY_DROP_NFT" in
+    no|false|0)
+      return 0
+      ;;
+    yes|true|1)
+      if ! has_nft_networks; then
+        echo "ENABLE_EARLY_DROP_NFT=yes, pero no hay redes en BLOCK_NETWORKS_FILE ni DEFAULT_BLOCK_NETWORKS."
+        echo "Configura security-nft-blocks.txt o DEFAULT_BLOCK_NETWORKS para activar nftables early drop."
+        return 0
+      fi
+      ;;
+    auto)
+      if ! has_nft_networks; then
+        log "nftables early drop omitido: no hay redes configuradas"
+        return 0
+      fi
+      ;;
+    *)
+      echo "ENABLE_EARLY_DROP_NFT invalido: $ENABLE_EARLY_DROP_NFT"
+      exit 1
+      ;;
+  esac
+
+  log "Instalando nftables early drop persistente"
+  ENV_FILE="$ENV_FILE" "$PROJECT_DIR/scripts/install_early_drop_persistent.sh"
+}
+
 validate_stack() {
   log "Validando Nginx y servicios"
   nginx -t
@@ -147,6 +196,7 @@ run_modsecurity
 run_fail2ban
 run_monitor_tools
 run_threat_intel
+run_early_drop_nft
 validate_stack
 
 cat <<EOF

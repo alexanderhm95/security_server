@@ -42,6 +42,8 @@ cp security-stack.sp1.env.example security-stack.env
 - `BUILD_MODSECURITY_FROM_SOURCE`: `auto` intenta paquete y compila si hace falta; `yes` fuerza compilacion; `no` exige paquete/modulo ya disponible.
 - `ENABLE_THREAT_INTEL`: instala un `ipset` actualizado por systemd timer.
 - `THREAT_INTEL_SOURCES`: por defecto `spamhaus_drop`; tambien soporta `abuseipdb` si defines `ABUSEIPDB_API_KEY`.
+- `ENABLE_EARLY_DROP_NFT`: `auto` activa nftables early drop solo si hay redes en `security-nft-blocks.txt`; `yes` fuerza la etapa; `no` la omite.
+- `BLOCK_NETWORKS_FILE`: archivo con redes/IPs para bloquear temprano con nftables. Por defecto `./security-nft-blocks.txt`.
 
 ## Recomendacion Para Nuevos Servidores
 
@@ -118,6 +120,7 @@ Notas:
 - Los paquetes de scanners pueden seguir llegando a la IP publica; el objetivo es que se descarten antes de llegar a servicios.
 - El trafico IPv6 `fe80::` hacia `ff02::1` es link-local/multicast, no ataque de Internet.
 - `ban_repeat_ufw_sources.sh` guarda estado en `/var/lib/security-server/ufw-auto-banned-ips.txt` para no duplicar bloqueos.
+- El instalador principal (`install_security_stack.sh`) tambien ejecuta `install_early_drop_persistent.sh` cuando `ENABLE_EARLY_DROP_NFT` esta en `yes` o cuando esta en `auto` y existe una lista con redes. Si `nftables.service` queda `inactive`, normalmente significa que no habia redes configuradas para cargar.
 
 ## Monitor Y Reportes
 
