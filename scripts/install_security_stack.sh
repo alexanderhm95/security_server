@@ -154,12 +154,16 @@ run_early_drop_nft() {
       if ! has_nft_networks; then
         echo "ENABLE_EARLY_DROP_NFT=yes, pero no hay redes en BLOCK_NETWORKS_FILE ni DEFAULT_BLOCK_NETWORKS."
         echo "Configura security-nft-blocks.txt o DEFAULT_BLOCK_NETWORKS para activar nftables early drop."
-        return 0
+        echo "Puedes generar sugerencias con:"
+        echo "  sudo ENV_FILE=$ENV_FILE MIN_HITS=20 $PROJECT_DIR/scripts/suggest_nft_blocks_from_ufw.sh --write"
+        exit 1
       fi
       ;;
     auto)
       if ! has_nft_networks; then
         log "nftables early drop omitido: no hay redes configuradas"
+        echo "Para activarlo, llena $BLOCK_NETWORKS_FILE o genera sugerencias con:"
+        echo "  sudo ENV_FILE=$ENV_FILE MIN_HITS=20 $PROJECT_DIR/scripts/suggest_nft_blocks_from_ufw.sh --write"
         return 0
       fi
       ;;

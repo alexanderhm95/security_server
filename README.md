@@ -92,6 +92,9 @@ sudo ENV_FILE=./security-firewall.env ./scripts/drop_hot_attackers_nft.sh --appl
 # Hace persistente el bloqueo nftables despues de reinicio.
 sudo ENV_FILE=./security-firewall.env ./scripts/install_early_drop_persistent.sh
 
+# Opcional: generar redes candidatas desde /var/log/ufw.log.
+sudo env ENV_FILE=./security-stack.env MIN_HITS=20 ./scripts/suggest_nft_blocks_from_ufw.sh --write
+
 # Banea IPs individuales repetidas vistas en /var/log/ufw.log.
 sudo env ENV_FILE=./security-firewall.env THRESHOLD=20 ./scripts/ban_repeat_ufw_sources.sh --apply
 ```
