@@ -188,7 +188,13 @@ ensure_crs() {
 }
 
 configure_nginx_module() {
-  if [ -f "$MODULE_PATH" ] && ! grep -RqsF "$MODULE_LINE" "$NGINX_CONF" /etc/nginx/modules-enabled 2>/dev/null; then
+  if grep -Rqs 'ngx_http_modsecurity_module\.so' /etc/nginx/modules-enabled 2>/dev/null; then
+    if grep -qsF "$MODULE_LINE" "$NGINX_CONF"; then
+      backup_file "$NGINX_CONF"
+      sed -i "\#^${MODULE_LINE}$#d" "$NGINX_CONF"
+      echo "Eliminado load_module duplicado de $NGINX_CONF; el modulo ya se carga desde modules-enabled."
+    fi
+  elif [ -f "$MODULE_PATH" ]; then
     backup_file "$NGINX_CONF"
     sed -i "1i${MODULE_LINE}" "$NGINX_CONF"
     echo "Agregado modulo ModSecurity a $NGINX_CONF"
