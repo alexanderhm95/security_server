@@ -108,6 +108,13 @@ systemctl status security-early-drop-nft --no-pager
 ss -ltnup | grep -E ':(3000|3100|9090|9096|9099|9100|9115)\s'
 ```
 
+Si Cockpit se usa en el servidor, mantenlo escuchando en `9090/tcp`, pero permite acceso solo desde VPN/red autorizada:
+
+```bash
+sudo ufw allow from 10.88.0.0/24 to any port 9090 proto tcp comment "Cockpit solo VPN"
+sudo ufw deny from any to any port 9090 proto tcp comment "Cockpit protegido"
+```
+
 Ejemplo para SP2:
 
 ```bash
