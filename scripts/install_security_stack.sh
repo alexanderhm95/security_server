@@ -37,6 +37,9 @@ ENABLE_THREAT_INTEL="${ENABLE_THREAT_INTEL:-yes}"
 ENABLE_EARLY_DROP_NFT="${ENABLE_EARLY_DROP_NFT:-auto}"
 BLOCK_NETWORKS_FILE="${BLOCK_NETWORKS_FILE:-${PROJECT_DIR}/security-nft-blocks.txt}"
 DEFAULT_BLOCK_NETWORKS="${DEFAULT_BLOCK_NETWORKS:-}"
+TRUSTED_CIDRS="${TRUSTED_CIDRS:-${THREAT_INTEL_IGNORE_CIDRS:-${PUBLIC_IGNORE_IPS:-$IGNORE_IPS}}}"
+TRUST_PRIVATE_CIDRS="${TRUST_PRIVATE_CIDRS:-yes}"
+PROMPT_IGNORE_RANGES="${PROMPT_IGNORE_RANGES:-auto}"
 
 if [ -n "$BLOCK_NETWORKS_FILE" ] && [ "${BLOCK_NETWORKS_FILE#/}" = "$BLOCK_NETWORKS_FILE" ] && [ -n "$ENV_DIR" ]; then
   BLOCK_NETWORKS_FILE="${ENV_DIR}/${BLOCK_NETWORKS_FILE}"
@@ -44,6 +47,119 @@ fi
 
 log() {
   printf '\n==> %s\n' "$*"
+}
+
+shell_quote_value() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//\$/\\\$}"
+  value="${value//\`/\\\`}"
+  printf '"%s"' "$value"
+}
+
+persist_env_var() {
+  local key="$1"
+  local value="$2"
+  local quoted
+
+  [ -n "$ENV_FILE" ] || return 0
+  mkdir -p "$(dirname "$ENV_FILE")"
+  touch "$ENV_FILE"
+  quoted="$(shell_quote_value "$value")"
+
+  if grep -qE "^${key}=" "$ENV_FILE"; then
+    sed -i "s|^${key}=.*|${key}=${quoted}|" "$ENV_FILE"
+  else
+    printf '%s=%s\n' "$key" "$quoted" >> "$ENV_FILE"
+  fi
+}
+
+append_unique_ranges() {
+  local current="$1"
+  local additions="$2"
+  python3 - "$current" "$additions" <<'PY'
+import sys
+
+items = []
+seen = set()
+for raw in (sys.argv[1] + " " + sys.argv[2]).split():
+    if raw in seen:
+        continue
+    seen.add(raw)
+    items.append(raw)
+
+print(" ".join(items))
+PY
+}
+
+prompt_additional_ranges() {
+  local prompt="$1"
+  local default="$2"
+  local answer
+
+  printf '%s\n' "$prompt" >&2
+  printf 'Actual: %s\n' "$default" >&2
+  printf 'Agregar rangos/IPs, o Enter para conservar: ' >&2
+  IFS= read -r answer
+  if [ -n "$answer" ]; then
+    append_unique_ranges "$default" "$answer"
+  else
+    printf '%s\n' "$default"
+  fi
+}
+
+should_prompt_ignores() {
+  case "$PROMPT_IGNORE_RANGES" in
+    yes|true|1)
+      return 0
+      ;;
+    no|false|0)
+      return 1
+      ;;
+    auto)
+      [ -t 0 ] && [ -t 1 ]
+      return
+      ;;
+    *)
+      echo "PROMPT_IGNORE_RANGES invalido: $PROMPT_IGNORE_RANGES"
+      exit 1
+      ;;
+  esac
+}
+
+configure_ignore_ranges() {
+  if ! should_prompt_ignores; then
+    return 0
+  fi
+
+  log "Configurando rangos/IPs a ignorar"
+  echo "Escribe rangos separados por espacios. Ejemplo:"
+  echo "  127.0.0.1/8 ::1 10.10.0.0/24 172.26.0.0/24 190.96.96.0/21"
+  echo
+
+  IGNORE_IPS="$(prompt_additional_ranges "Fail2Ban global: IPs/rangos que nunca debe banear." "$IGNORE_IPS")"
+  PUBLIC_IGNORE_IPS="$(prompt_additional_ranges "Fail2Ban web/publico: IPs/rangos que nunca deben banear las jails Nginx." "$PUBLIC_IGNORE_IPS")"
+  THREAT_INTEL_IGNORE_CIDRS="$(prompt_additional_ranges "Threat intel: IPs/rangos locales que no debe bloquear." "${THREAT_INTEL_IGNORE_CIDRS:-$IGNORE_IPS}")"
+  TRUSTED_CIDRS="$(prompt_additional_ranges "nftables/auto-ban: IPs/rangos que NO deben agregarse a security-nft-blocks.txt." "$TRUSTED_CIDRS")"
+
+  printf 'Confiar automaticamente TODO RFC1918 para nftables/auto-ban? [yes/no]\n'
+  printf 'Actual: %s\n' "$TRUST_PRIVATE_CIDRS"
+  printf 'Nuevo valor, o Enter para conservar: '
+  local trust_private_answer
+  IFS= read -r trust_private_answer
+  if [ -n "$trust_private_answer" ]; then
+    TRUST_PRIVATE_CIDRS="$trust_private_answer"
+  fi
+
+  persist_env_var "IGNORE_IPS" "$IGNORE_IPS"
+  persist_env_var "PUBLIC_IGNORE_IPS" "$PUBLIC_IGNORE_IPS"
+  persist_env_var "THREAT_INTEL_IGNORE_CIDRS" "$THREAT_INTEL_IGNORE_CIDRS"
+  persist_env_var "TRUSTED_CIDRS" "$TRUSTED_CIDRS"
+  persist_env_var "TRUST_PRIVATE_CIDRS" "$TRUST_PRIVATE_CIDRS"
+
+  echo
+  echo "Rangos guardados en: $ENV_FILE"
 }
 
 install_packages() {
@@ -194,6 +310,7 @@ validate_stack() {
   ss -tulpen | sed -n '1,80p'
 }
 
+configure_ignore_ranges
 install_packages
 configure_ufw
 run_modsecurity

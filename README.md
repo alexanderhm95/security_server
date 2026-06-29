@@ -34,6 +34,7 @@ cp security-stack.sp1.env.example security-stack.env
 
 - `IGNORE_IPS`: redes que nunca deben ser bloqueadas por Fail2Ban. Por defecto incluye `190.96.96.0/21`.
 - `PUBLIC_IGNORE_IPS`: redes permitidas para jails web. Por defecto incluye `190.96.96.0/21`.
+- `PROMPT_IGNORE_RANGES`: `auto` hace que el instalador pregunte los ignores si corre en una terminal; usa `no` para automatizaciones.
 - `SSH_ALLOW_CIDR`: red/IP autorizada para SSH. Si queda vacia, el instalador no cambia SSH.
 - `HTTP_ALLOW_CIDR` / `HTTPS_ALLOW_CIDR`: usa `any` o un CIDR especifico. Por defecto `80` queda limitado a `190.96.96.0/21` y `443` queda publico.
 - `WIREGUARD_ALLOW_CIDR`: usa `any` o un CIDR especifico. Por defecto queda limitado a `190.96.96.0/21`.
@@ -44,6 +45,10 @@ cp security-stack.sp1.env.example security-stack.env
 - `THREAT_INTEL_SOURCES`: por defecto `spamhaus_drop`; tambien soporta `abuseipdb` si defines `ABUSEIPDB_API_KEY`.
 - `ENABLE_EARLY_DROP_NFT`: `auto` activa nftables early drop solo si hay redes en `security-nft-blocks.txt`; `yes` fuerza la etapa; `no` la omite.
 - `BLOCK_NETWORKS_FILE`: archivo con redes/IPs para bloquear temprano con nftables. Por defecto `./security-nft-blocks.txt`.
+- `TRUST_PRIVATE_CIDRS`: `yes` evita auto-bloquear redes privadas RFC1918; usa `no` si el borde/proveedor te entrega trafico externo con SRC privada visible en UFW, por ejemplo `172.26.x.x`.
+- `TRUSTED_CIDRS`: redes/IPs que `suggest_nft_blocks_from_ufw.sh` y `ban_repeat_ufw_sources.sh` nunca deben agregar a `nftables`.
+- `AUTO_BAN_BACKEND`: `nft` agrega repetidos a `BLOCK_NETWORKS_FILE` y recarga nftables; `ufw` queda solo como modo legacy.
+- `AUTO_BAN_NFT_PREFIX`: prefijo usado al convertir IPs repetidas a redes nftables. Usa `32` para IP exacta o `24` para cortar subredes ruidosas.
 
 ## Recomendacion Para Nuevos Servidores
 
@@ -97,6 +102,14 @@ sudo env ENV_FILE=./security-stack.env MIN_HITS=20 ./scripts/suggest_nft_blocks_
 
 # Banea IPs individuales repetidas vistas en /var/log/ufw.log.
 sudo env ENV_FILE=./security-firewall.env THRESHOLD=20 ./scripts/ban_repeat_ufw_sources.sh --apply
+
+# Si ves ataques con SRC privada en UFW BLOCK, como 172.26.x.x,
+# usa TRUST_PRIVATE_CIDRS=no en el env o pasalo en la ejecucion.
+sudo env ENV_FILE=./security-stack.env TRUST_PRIVATE_CIDRS=no MIN_HITS=5 ./scripts/suggest_nft_blocks_from_ufw.sh --write
+sudo env ENV_FILE=./security-stack.env TRUST_PRIVATE_CIDRS=no THRESHOLD=5 ./scripts/ban_repeat_ufw_sources.sh --apply
+
+# Si ya quedaron reglas auto-ban dentro de UFW por el modo anterior:
+sudo ./scripts/cleanup_auto_ban_ufw_rules.sh --apply
 ```
 
 Verificacion recomendada:
