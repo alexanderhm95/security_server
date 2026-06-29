@@ -35,6 +35,7 @@ cp security-stack.sp1.env.example security-stack.env
 - `IGNORE_IPS`: redes que nunca deben ser bloqueadas por Fail2Ban. Por defecto incluye `190.96.96.0/21`.
 - `PUBLIC_IGNORE_IPS`: redes permitidas para jails web. Por defecto incluye `190.96.96.0/21`.
 - `PROMPT_IGNORE_RANGES`: `auto` hace que el instalador pregunte los ignores si corre en una terminal; usa `no` para automatizaciones.
+  La primera pregunta acepta rangos comunes que se agregan a Fail2Ban, threat intel y nftables a la vez.
 - `SSH_ALLOW_CIDR`: red/IP autorizada para SSH. Si queda vacia, el instalador no cambia SSH.
 - `HTTP_ALLOW_CIDR` / `HTTPS_ALLOW_CIDR`: usa `any` o un CIDR especifico. Por defecto `80` queda limitado a `190.96.96.0/21` y `443` queda publico.
 - `WIREGUARD_ALLOW_CIDR`: usa `any` o un CIDR especifico. Por defecto queda limitado a `190.96.96.0/21`.

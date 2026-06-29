@@ -138,10 +138,21 @@ configure_ignore_ranges() {
   echo "  127.0.0.1/8 ::1 10.10.0.0/24 172.26.0.0/24 190.96.96.0/21"
   echo
 
-  IGNORE_IPS="$(prompt_additional_ranges "Fail2Ban global: IPs/rangos que nunca debe banear." "$IGNORE_IPS")"
-  PUBLIC_IGNORE_IPS="$(prompt_additional_ranges "Fail2Ban web/publico: IPs/rangos que nunca deben banear las jails Nginx." "$PUBLIC_IGNORE_IPS")"
-  THREAT_INTEL_IGNORE_CIDRS="$(prompt_additional_ranges "Threat intel: IPs/rangos locales que no debe bloquear." "${THREAT_INTEL_IGNORE_CIDRS:-$IGNORE_IPS}")"
-  TRUSTED_CIDRS="$(prompt_additional_ranges "nftables/auto-ban: IPs/rangos que NO deben agregarse a security-nft-blocks.txt." "$TRUSTED_CIDRS")"
+  printf 'Rangos comunes para Fail2Ban, threat intel y nftables.\n' >&2
+  printf 'Agregar rangos/IPs comunes, o Enter para saltar: ' >&2
+  local common_ignore_ranges
+  IFS= read -r common_ignore_ranges
+  if [ -n "$common_ignore_ranges" ]; then
+    IGNORE_IPS="$(append_unique_ranges "$IGNORE_IPS" "$common_ignore_ranges")"
+    PUBLIC_IGNORE_IPS="$(append_unique_ranges "$PUBLIC_IGNORE_IPS" "$common_ignore_ranges")"
+    THREAT_INTEL_IGNORE_CIDRS="$(append_unique_ranges "${THREAT_INTEL_IGNORE_CIDRS:-$IGNORE_IPS}" "$common_ignore_ranges")"
+    TRUSTED_CIDRS="$(append_unique_ranges "$TRUSTED_CIDRS" "$common_ignore_ranges")"
+  fi
+
+  IGNORE_IPS="$(prompt_additional_ranges "Fail2Ban global: IPs/rangos adicionales que nunca debe banear." "$IGNORE_IPS")"
+  PUBLIC_IGNORE_IPS="$(prompt_additional_ranges "Fail2Ban web/publico: IPs/rangos adicionales para jails Nginx." "$PUBLIC_IGNORE_IPS")"
+  THREAT_INTEL_IGNORE_CIDRS="$(prompt_additional_ranges "Threat intel: IPs/rangos locales adicionales que no debe bloquear." "${THREAT_INTEL_IGNORE_CIDRS:-$IGNORE_IPS}")"
+  TRUSTED_CIDRS="$(prompt_additional_ranges "nftables/auto-ban: IPs/rangos adicionales que NO deben agregarse a security-nft-blocks.txt." "$TRUSTED_CIDRS")"
 
   printf 'Confiar automaticamente TODO RFC1918 para nftables/auto-ban? [yes/no]\n'
   printf 'Actual: %s\n' "$TRUST_PRIVATE_CIDRS"
