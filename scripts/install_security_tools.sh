@@ -28,6 +28,10 @@ EOF
 
 cat > /usr/local/bin/security-report <<'EOF'
 #!/bin/bash
+if [ "$EUID" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+  exec sudo "$0" "$@"
+fi
+
 modsecurity_rule_count() {
   local nginx_test_output nginx_t_count notice_count total_count
   nginx_test_output="$(nginx -t 2>&1 || true)"
@@ -61,6 +65,11 @@ echo
 echo "THREAT INTEL"
 if command -v ipset >/dev/null 2>&1 && ipset list security_threat_ipv4 >/dev/null 2>&1; then
   ipset list security_threat_ipv4 | awk '/Number of entries/ {print "  IPs/rangos cargados: " $4}'
+  if iptables -C INPUT -m set --match-set security_threat_ipv4 src -j DROP 2>/dev/null; then
+    echo "  Bloqueo firewall: activo en INPUT"
+  else
+    echo "  Bloqueo firewall: ipset existe, pero falta regla DROP en INPUT"
+  fi
 else
   echo "  No instalado"
 fi
