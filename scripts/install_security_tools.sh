@@ -44,6 +44,13 @@ echo
 echo "UFW"
 ufw status 2>/dev/null | sed 's/^/  /' || true
 echo
+echo "THREAT INTEL"
+if command -v ipset >/dev/null 2>&1 && ipset list security_threat_ipv4 >/dev/null 2>&1; then
+  ipset list security_threat_ipv4 | awk '/Number of entries/ {print "  IPs/rangos cargados: " $4}'
+else
+  echo "  No instalado"
+fi
+echo
 echo "PUERTOS ESCUCHANDO"
 ss -tulpen 2>/dev/null | sed -n '1,40p'
 echo

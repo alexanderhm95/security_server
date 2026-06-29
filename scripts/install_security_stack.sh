@@ -29,6 +29,7 @@ WIREGUARD_ALLOW_CIDR="${WIREGUARD_ALLOW_CIDR:-any}"
 ENABLE_MODSECURITY="${ENABLE_MODSECURITY:-yes}"
 ENABLE_FAIL2BAN="${ENABLE_FAIL2BAN:-yes}"
 ENABLE_MONITOR_TOOLS="${ENABLE_MONITOR_TOOLS:-yes}"
+ENABLE_THREAT_INTEL="${ENABLE_THREAT_INTEL:-yes}"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -43,7 +44,7 @@ install_packages() {
 
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    nginx fail2ban curl git ca-certificates iptables ufw
+    nginx fail2ban curl git ca-certificates iptables ufw ipset
 }
 
 configure_ufw() {
@@ -115,6 +116,12 @@ run_monitor_tools() {
   "$PROJECT_DIR/scripts/install_security_tools.sh"
 }
 
+run_threat_intel() {
+  [ "$ENABLE_THREAT_INTEL" = "yes" ] || return 0
+  log "Instalando threat intelligence blocklists"
+  THREAT_INTEL_ENV="$ENV_FILE" "$PROJECT_DIR/scripts/install_threat_intel.sh"
+}
+
 validate_stack() {
   log "Validando Nginx y servicios"
   nginx -t
@@ -132,6 +139,7 @@ configure_ufw
 run_modsecurity
 run_fail2ban
 run_monitor_tools
+run_threat_intel
 validate_stack
 
 cat <<EOF

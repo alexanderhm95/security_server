@@ -10,6 +10,7 @@ Incluye:
 - OWASP Core Rule Set.
 - Reglas locales contra scanners, user-agent vacio y rutas sensibles.
 - Herramientas `security-monitor` y `security-report`.
+- Threat intelligence con `ipset` para bloquear rangos/IPs conocidos.
 
 ## Uso Rapido
 
@@ -36,6 +37,8 @@ cp security-stack.sp1.env.example security-stack.env
 - `DISCORD_WEBHOOK_URL`: opcional. No se guarda ningun webhook por defecto.
 - `MODSEC_RULE_ENGINE`: `On` para bloquear, `DetectionOnly` para solo observar.
 - `BUILD_MODSECURITY_FROM_SOURCE`: `auto` intenta paquete y compila si hace falta; `yes` fuerza compilacion; `no` exige paquete/modulo ya disponible.
+- `ENABLE_THREAT_INTEL`: instala un `ipset` actualizado por systemd timer.
+- `THREAT_INTEL_SOURCES`: por defecto `spamhaus_drop`; tambien soporta `abuseipdb` si defines `ABUSEIPDB_API_KEY`.
 
 ## Recomendacion Para Nuevos Servidores
 
@@ -53,6 +56,24 @@ curl -k "https://localhost/?q=<script>alert(1)</script>" -s -o /dev/null -w "HTT
 ```
 
 Los ataques de prueba deberian devolver `403` cuando `MODSEC_RULE_ENGINE="On"`.
+
+## Threat Intel
+
+Por defecto se carga Spamhaus DROP en un `ipset` llamado `security_threat_ipv4` y se inserta una regla al inicio de `INPUT`:
+
+```bash
+sudo ipset list security_threat_ipv4
+sudo systemctl status security-threat-intel.timer
+sudo security-threat-intel-update
+```
+
+Para AbuseIPDB agrega en `security-stack.env`:
+
+```bash
+THREAT_INTEL_SOURCES="spamhaus_drop abuseipdb"
+ABUSEIPDB_API_KEY="TU_API_KEY"
+ABUSEIPDB_CONFIDENCE_MINIMUM="90"
+```
 
 ## Nota Sobre ModSecurity
 

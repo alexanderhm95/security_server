@@ -14,6 +14,7 @@ Despues de ejecutar:
 - `sudo systemctl status nginx fail2ban --no-pager`
 - `sudo ufw status numbered`
 - `security-report`
+- `sudo ipset list security_threat_ipv4`
 - Revisar `/var/log/modsec_audit.log`.
 - Probar login, portal, formularios y subida de archivos si aplica.
 
