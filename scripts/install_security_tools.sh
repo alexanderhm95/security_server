@@ -28,6 +28,20 @@ EOF
 
 cat > /usr/local/bin/security-report <<'EOF'
 #!/bin/bash
+modsecurity_rule_count() {
+  local nginx_test_output nginx_t_count notice_count total_count
+  nginx_test_output="$(nginx -t 2>&1 || true)"
+  nginx_t_count="$(nginx -T 2>/dev/null | grep -c '^[[:space:]]*SecRule' || true)"
+  notice_count="$(printf '%s\n' "$nginx_test_output" | sed -n 's/.*rules loaded inline\/local\/remote: [0-9]\+\/\([0-9]\+\)\/[0-9]\+.*/\1/p' | tail -n 1)"
+  total_count="$nginx_t_count"
+
+  if [ -n "$notice_count" ] && [ "$notice_count" -gt "$total_count" ]; then
+    total_count="$notice_count"
+  fi
+
+  printf '%s (nginx -T=%s, notice=%s)\n' "$total_count" "$nginx_t_count" "${notice_count:-0}"
+}
+
 echo "==============================================================="
 echo "  REPORTE DE SEGURIDAD DEL SERVIDOR"
 echo "==============================================================="
@@ -35,7 +49,7 @@ echo "Fecha: $(date)"
 echo
 echo "MODSECURITY"
 echo "  Engine: $(nginx -T 2>/dev/null | awk '/SecRuleEngine/ {print $2; exit}')"
-echo "  Reglas SecRule cargadas: $(nginx -T 2>/dev/null | grep -c '^[[:space:]]*SecRule' || true)"
+echo "  Reglas cargadas: $(modsecurity_rule_count)"
 echo "  Audit log: /var/log/modsec_audit.log"
 echo
 echo "FAIL2BAN"

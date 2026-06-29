@@ -296,14 +296,24 @@ EOF
 }
 
 verify_modsecurity_rules() {
-  local count
-  count="$(nginx -T 2>/dev/null | grep -c '^[[:space:]]*SecRule' || true)"
-  if [ "$count" -lt 10 ]; then
-    echo "ERROR: ModSecurity esta cargado, pero Nginx reporta solo ${count} reglas SecRule."
+  local nginx_test_output nginx_t_count notice_count total_count
+  nginx_test_output="$(nginx -t 2>&1)"
+  printf '%s\n' "$nginx_test_output"
+  nginx_t_count="$(nginx -T 2>/dev/null | grep -c '^[[:space:]]*SecRule' || true)"
+  notice_count="$(printf '%s\n' "$nginx_test_output" | sed -n 's/.*rules loaded inline\/local\/remote: [0-9]\+\/\([0-9]\+\)\/[0-9]\+.*/\1/p' | tail -n 1)"
+  total_count="$nginx_t_count"
+
+  if [ -n "$notice_count" ] && [ "$notice_count" -gt "$total_count" ]; then
+    total_count="$notice_count"
+  fi
+
+  if [ "$total_count" -lt 10 ]; then
+    echo "ERROR: ModSecurity esta cargado, pero Nginx reporta solo ${total_count} reglas."
+    echo "nginx -T encontro ${nginx_t_count} SecRule; notice ModSecurity reporto ${notice_count:-0} reglas locales."
     echo "Esto normalmente significa que modsecurity_rules_file no apunta a ${MODSEC_DIR}/main.conf o que OWASP CRS no cargo."
     exit 1
   fi
-  echo "ModSecurity reglas cargadas: ${count}"
+  echo "ModSecurity reglas cargadas: ${total_count} (nginx -T=${nginx_t_count}, notice=${notice_count:-0})"
 }
 
 ensure_crs
