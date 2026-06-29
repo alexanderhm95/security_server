@@ -32,7 +32,10 @@ timestamp="$(date +%Y%m%d-%H%M%S)"
 
 backup_file() {
   local file="$1"
-  [ -f "$file" ] && cp "$file" "${file}.bak.${timestamp}"
+  if [ -f "$file" ]; then
+    cp "$file" "${file}.bak.${timestamp}"
+  fi
+  return 0
 }
 
 write_file() {
