@@ -269,6 +269,10 @@ case "$JAIL_NAME" in
     COLOR=16753920
     DESCRIPTION="Posible abuso o rate limit detectado"
     ;;
+  nginx-malformed)
+    COLOR=16711680
+    DESCRIPTION="Request HTTP vacio o malformado detectado"
+    ;;
   *)
     COLOR=3447003
     DESCRIPTION="Actividad sospechosa detectada"
@@ -413,6 +417,18 @@ maxretry = 300
 findtime = 300
 bantime = 600
 action = $(action_block nginx-dos)
+
+[nginx-malformed]
+enabled = true
+backend = polling
+filter = nginx-malformed
+port = http,https
+logpath = ${NGINX_ACCESS_LOG}
+maxretry = 1
+findtime = 600
+bantime = 31536000
+ignoreip = ${PUBLIC_IGNORE_IPS}
+action = $(action_block nginx-malformed)
 EOF
 
 write_file /etc/fail2ban/jail.d/nginx-custom.local <<EOF
@@ -531,6 +547,21 @@ failregex = ^<HOST> -.*".*" (429|444|503) .*$
 ignoreregex =
 EOF
 
+write_file /etc/fail2ban/filter.d/nginx-malformed.conf <<'EOF'
+[Definition]
+# Requests vacios o basura binaria/protocolos ajenos entrando a Nginx.
+# Ejemplos:
+#   1.2.3.4 - - [date] "-" 400 0 "-" "-"
+#   1.2.3.4 - - [date] "\x03\x00..." 400 ... "-" "-"
+#   1.2.3.4 - - [date] "PROPFIND / HTTP/1.1" 405 ... "-" "-"
+#   1.2.3.4 - - [date] "27;wget%20http://..." 400 ... "-" "-"
+failregex = ^<HOST> - .* "-" (400|444) .*$
+            ^<HOST> - .* "\\x[0-9A-Fa-f]{2}[^"]*" (400|444) .*$
+            ^<HOST> - .* "[^"]*(mstshash=|wget%%20|chmod%%20|Mozi\.m|/bin/sh|/bin/busybox)[^"]*" (400|403|444) .*$
+            ^<HOST> - .* "(PROPFIND|TRACK|PRI|MGLNDD_[^"]*|[^"]*wget%%20[^"]*)[^"]*" (400|405|444) .*$
+ignoreregex =
+EOF
+
 ensure_log_file "$NGINX_ACCESS_LOG"
 ensure_log_file "$NGINX_ERROR_LOG"
 
@@ -559,7 +590,7 @@ fail2ban-client status
 
 echo
 echo "Jails instalados:"
-for jail in sshd nginx-http-auth nginx-dos nginx-master nginx-404 nginx-scanners nginx-badbots nginx-nohome; do
+for jail in sshd nginx-http-auth nginx-dos nginx-malformed nginx-master nginx-404 nginx-scanners nginx-badbots nginx-nohome; do
   echo "---- ${jail} ----"
   fail2ban-client status "$jail" || true
 done

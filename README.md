@@ -6,6 +6,7 @@ Incluye:
 
 - UFW con politica `deny incoming`.
 - Fail2Ban para SSH y patrones Nginx.
+- Jail `nginx-malformed` para requests vacios, basura binaria y metodos/protocolos ajenos a HTTP normal.
 - ModSecurity para Nginx.
 - OWASP Core Rule Set.
 - Reglas locales contra scanners, user-agent vacio y rutas sensibles.
@@ -78,6 +79,8 @@ sudo attack-detect /var/log/nginx/access.log
 `attack-detect` revisa codigos HTTP, trafico por hora, metodos usados, ataques por puerto, hosts solicitados, top IPs con pais/ISP/ASN, rutas sensibles, scanners conocidos, user-agents sospechosos, ranking de riesgo por IP, bloqueos UFW y acciones manuales sugeridas.
 
 El analizador no bloquea automaticamente. Sirve para monitoreo y decision operativa; los bloqueos automaticos quedan en Fail2Ban, ModSecurity, UFW y threat intel.
+
+Fail2Ban bloquea requests vacios/malformados mediante la jail `nginx-malformed`. Cubre entradas como `"-" 400`, bytes `\x03...`, intentos RDP contra Nginx (`mstshash`), `PROPFIND`, `MGLNDD_...` y payloads tipo `wget%%20/Mozi`.
 
 ### Log Nginx Recomendado Para Attack Detect
 
