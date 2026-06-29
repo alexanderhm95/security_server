@@ -79,6 +79,35 @@ module_loads() {
   return 0
 }
 
+nginx_conf_modsec_load_count() {
+  grep -Ec '^[[:space:]]*load_module[[:space:]]+.*ngx_http_modsecurity_module\.so;[[:space:]]*$' "$NGINX_CONF" 2>/dev/null || true
+}
+
+remove_nginx_conf_modsec_loads() {
+  sed -i '\|^[[:space:]]*load_module[[:space:]]\+.*ngx_http_modsecurity_module\.so;[[:space:]]*$|d' "$NGINX_CONF"
+}
+
+normalize_existing_module_loads() {
+  local conf_loads
+  conf_loads="$(nginx_conf_modsec_load_count)"
+
+  if grep -Rqs 'ngx_http_modsecurity_module\.so' /etc/nginx/modules-enabled 2>/dev/null; then
+    if [ "$conf_loads" -gt 0 ]; then
+      backup_file "$NGINX_CONF"
+      remove_nginx_conf_modsec_loads
+      echo "Eliminado load_module de $NGINX_CONF; el modulo ya se carga desde modules-enabled."
+    fi
+    return
+  fi
+
+  if [ "$conf_loads" -gt 1 ]; then
+    backup_file "$NGINX_CONF"
+    remove_nginx_conf_modsec_loads
+    sed -i "1i${MODULE_LINE}" "$NGINX_CONF"
+    echo "Normalizado load_module duplicado de ModSecurity en $NGINX_CONF."
+  fi
+}
+
 try_package_module() {
   echo "Intentando instalar ModSecurity para Nginx desde paquetes..."
   apt-get update
@@ -152,6 +181,8 @@ build_nginx_connector() {
 }
 
 ensure_modsecurity_module() {
+  normalize_existing_module_loads
+
   if module_loads; then
     echo "Modulo ModSecurity ya carga correctamente."
     return
@@ -188,13 +219,13 @@ ensure_crs() {
 }
 
 configure_nginx_module() {
+  local conf_loads
+  normalize_existing_module_loads
+  conf_loads="$(nginx_conf_modsec_load_count)"
+
   if grep -Rqs 'ngx_http_modsecurity_module\.so' /etc/nginx/modules-enabled 2>/dev/null; then
-    if grep -qsF "$MODULE_LINE" "$NGINX_CONF"; then
-      backup_file "$NGINX_CONF"
-      sed -i '\|^load_module /usr/lib/nginx/modules/ngx_http_modsecurity_module\.so;$|d' "$NGINX_CONF"
-      echo "Eliminado load_module duplicado de $NGINX_CONF; el modulo ya se carga desde modules-enabled."
-    fi
-  elif [ -f "$MODULE_PATH" ]; then
+    :
+  elif [ -f "$MODULE_PATH" ] && [ "$conf_loads" -eq 0 ]; then
     backup_file "$NGINX_CONF"
     sed -i "1i${MODULE_LINE}" "$NGINX_CONF"
     echo "Agregado modulo ModSecurity a $NGINX_CONF"
