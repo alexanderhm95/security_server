@@ -17,7 +17,7 @@ Incluye:
 ## Uso Rapido
 
 ```bash
-cd /home/administrador/security-stack-sp1
+cd /home/administrador/monitoreo/scripts/security-stack-sp1
 cp security-stack.env.example security-stack.env
 nano security-stack.env
 sudo ./scripts/install_security_stack.sh
