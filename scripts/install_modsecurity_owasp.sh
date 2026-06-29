@@ -299,9 +299,12 @@ verify_modsecurity_rules() {
 
 ensure_crs
 ensure_modsecurity_module
+echo "Instalando archivos de configuracion ModSecurity..."
 install_modsecurity_files
+echo "Configurando Nginx para usar ${MODSEC_DIR}/main.conf..."
 configure_nginx_module
 
+echo "Validando Nginx..."
 nginx -t
 systemctl reload nginx
 verify_modsecurity_rules
