@@ -21,6 +21,10 @@ if [[ -n "$BLOCK_NETWORKS_FILE" && "$BLOCK_NETWORKS_FILE" != /* && -n "$ENV_DIR"
   BLOCK_NETWORKS_FILE="$ENV_DIR/$BLOCK_NETWORKS_FILE"
 fi
 
+if [[ -z "$BLOCK_NETWORKS_FILE" && -n "$ENV_DIR" ]]; then
+  BLOCK_NETWORKS_FILE="$ENV_DIR/security-nft-blocks.txt"
+fi
+
 usage() {
   cat <<'EOF'
 Bloquea redes IPv4 temprano con nftables, antes de UFW.

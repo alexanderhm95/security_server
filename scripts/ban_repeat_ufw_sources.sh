@@ -5,15 +5,18 @@ MODE="${1:-check}"
 THRESHOLD="${THRESHOLD:-2}"
 LOG_FILE="${LOG_FILE:-/var/log/ufw.log}"
 STATE_FILE="${STATE_FILE:-/var/lib/security-server/ufw-auto-banned-ips.txt}"
-TRUSTED_CIDRS="${TRUSTED_CIDRS:-127.0.0.1/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4}"
+TRUSTED_CIDRS="${TRUSTED_CIDRS:-}"
 ENV_FILE="${ENV_FILE:-}"
 ENV_DIR=""
+BASE_TRUSTED_CIDRS="127.0.0.1/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4"
 
 if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
   ENV_DIR="$(cd "$(dirname "$ENV_FILE")" && pwd)"
   # shellcheck disable=SC1090
   . "$ENV_FILE"
 fi
+
+TRUSTED_CIDRS="$BASE_TRUSTED_CIDRS ${TRUSTED_CIDRS:-${THREAT_INTEL_IGNORE_CIDRS:-${PUBLIC_IGNORE_IPS:-${IGNORE_IPS:-}}}}"
 
 if [[ -n "$LOG_FILE" && "$LOG_FILE" != /* && -n "$ENV_DIR" ]]; then
   LOG_FILE="$ENV_DIR/$LOG_FILE"

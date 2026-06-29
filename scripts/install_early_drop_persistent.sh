@@ -23,6 +23,10 @@ if [[ -n "$BLOCK_NETWORKS_FILE" && "$BLOCK_NETWORKS_FILE" != /* && -n "$ENV_DIR"
   BLOCK_NETWORKS_FILE="$ENV_DIR/$BLOCK_NETWORKS_FILE"
 fi
 
+if [[ -z "$BLOCK_NETWORKS_FILE" && -n "$ENV_DIR" ]]; then
+  BLOCK_NETWORKS_FILE="$ENV_DIR/security-nft-blocks.txt"
+fi
+
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Ejecuta con sudo:"
   echo "  sudo ENV_FILE=$ENV_FILE BLOCK_NETWORKS_FILE=$BLOCK_NETWORKS_FILE $0"

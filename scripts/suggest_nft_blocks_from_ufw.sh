@@ -4,8 +4,10 @@ set -euo pipefail
 LOG_FILE="${LOG_FILE:-/var/log/ufw.log}"
 MIN_HITS="${MIN_HITS:-20}"
 OUTPUT_FILE="${OUTPUT_FILE:-}"
-TRUSTED_CIDRS="${TRUSTED_CIDRS:-127.0.0.1/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4}"
+TRUSTED_CIDRS="${TRUSTED_CIDRS:-}"
 ENV_FILE="${ENV_FILE:-}"
+ENV_DIR=""
+BASE_TRUSTED_CIDRS="127.0.0.1/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4"
 
 if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
   ENV_DIR="$(cd "$(dirname "$ENV_FILE")" && pwd)"
@@ -18,6 +20,12 @@ if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
       OUTPUT_FILE="$ENV_DIR/$BLOCK_NETWORKS_FILE"
     fi
   fi
+fi
+
+TRUSTED_CIDRS="$BASE_TRUSTED_CIDRS ${TRUSTED_CIDRS:-${THREAT_INTEL_IGNORE_CIDRS:-${PUBLIC_IGNORE_IPS:-${IGNORE_IPS:-}}}}"
+
+if [[ -z "$OUTPUT_FILE" && -n "$ENV_DIR" ]]; then
+  OUTPUT_FILE="$ENV_DIR/security-nft-blocks.txt"
 fi
 
 usage() {
